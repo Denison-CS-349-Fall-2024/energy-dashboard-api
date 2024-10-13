@@ -1,0 +1,8 @@
+flask==3.0.3
+Jinja2==3.1.4
+jsonschema==4.23.0
+flask-restx==1.3.0
+requests==2.32.3
+python-dotenv==1.0.1
+#install firebase sdk and cli to venv
+firebase-admin==6.5.0
