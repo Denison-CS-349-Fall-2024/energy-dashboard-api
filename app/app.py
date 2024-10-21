@@ -1,12 +1,9 @@
-from flask import Flask
 from fastapi import FastAPI
-from main.controller.solarController import solar_bp
-
+from main.controller.solarController import solarController
+from main.controller.fireStoreController import firebaseController
 
 # create and configure the app
 app = FastAPI()
 # hook app with controllers
-# app.register_blueprint(solar_bp)
-app.include_router(solar_bp)
-
-
+app.include_router(solarController)
+app.include_router(firebaseController)
