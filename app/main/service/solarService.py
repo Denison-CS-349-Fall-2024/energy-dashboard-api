@@ -11,7 +11,6 @@ class SolarService:
     def get_site_by_key(self,api_key)->ReponseModel:
         params = {"api_key": api_key}
         try:
-            print("service layer make request")
             res = requests.get(self.domain+"sites/list", params=params)
             if res.status_code==200:
                 return ReponseModel(message=res.json(),status=200)
@@ -21,7 +20,6 @@ class SolarService:
     
     def get_site_power(self,api_key,startTime,endTime,site_id)->ReponseModel:
         params = {"api_key": api_key, "startTime": startTime, "endTime": endTime}
-        print("service",params)
         try:
             res = requests.get(self.domain+f"site/{site_id}/power",params=params)
             if res.status_code==200:
@@ -32,9 +30,7 @@ class SolarService:
     
     def get_site_energy(self,api_key,startDate,endDate,timeUnit,site_id)->ReponseModel:
         params = {"api_key": api_key, "startDate": startDate, "endDate": endDate, "timeUnit": timeUnit}
-        print(params)
         try:
-            print(self.domain+f"site/{site_id}/energy")
             res = requests.get(self.domain+f"site/{site_id}/energy",params=params)
             if res.status_code==200:
                 return ReponseModel(message=res.json(),status=200)
