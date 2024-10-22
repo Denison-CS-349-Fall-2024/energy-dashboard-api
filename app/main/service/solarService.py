@@ -1,7 +1,9 @@
 import requests, os
-from flask import Response
 from dotenv import dotenv_values
 from ..model.ReponseModel import ReponseModel
+from ..model.BuildingInsight import BuildingInsight
+from ..model.BuildingDocument import BuildingDocument
+
 
 class SolarService:
     __config = dotenv_values(os.getcwd()+"/.env")
@@ -38,41 +40,81 @@ class SolarService:
         except:
             return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
 
-    def get_solar_insights(self, api_key: str, site_id: int) -> dict:
-        params = {"api_key": api_key}
+    # def get_solar_insights(self, api_key: str, site_id: int) -> dict:
+    #     params = {"api_key": api_key}
         
+    #     try:
+    #         # Call 1: Get site details (to retrieve the installation date)
+    #         site_details_res = requests.get(f"{self.domain}/site/{site_id}/details", params=params)
+    #         installed_on = None
+    #         if site_details_res.status_code == 200:
+    #             # Extract the 'installationDate' from the 'details' object in the response
+    #             details = site_details_res.json().get("details", {})
+    #             installed_on = details.get("installationDate")
+
+    #         # Call 2: Get site overview (to retrieve lifetime and recent month energy)
+    #         site_overview_res = requests.get(f"{self.domain}/site/{site_id}/overview", params=params)
+    #         lifetime_energy = None
+    #         recent_month_energy = None
+    #         energy_unit = "Wh"  # Assuming the unit is kWh as default
+    #         if site_overview_res.status_code == 200:
+    #             overview = site_overview_res.json().get("overview", {})
+                
+    #             # Extract lifetime energy and recent month's energy from the overview data
+    #             lifetime_energy = overview.get("lifeTimeData", {}).get("energy")
+    #             recent_month_energy = overview.get("lastMonthData", {}).get("energy")
+
+    #         # Combine all the retrieved data into the insights dictionary
+    #         insights_data = {
+    #             "id": site_id,
+    #             "installedOn": installed_on,
+    #             "lifetimeEnergy": lifetime_energy,
+    #             "recentMonthEnergy": recent_month_energy,
+    #             "energyUnit": energy_unit
+    #         }
+
+    #         return insights_data
+
+    #     except requests.exceptions.HTTPError as e:
+    #         # Return the error message in case of a request failure
+    #         return {"error": str(e), "status": 500}
+
+    def get_solar_insights(self, api_key: str, site_id: int) -> BuildingInsight:
+        params = {"api_key": api_key}
+
         try:
             # Call 1: Get site details (to retrieve the installation date)
             site_details_res = requests.get(f"{self.domain}/site/{site_id}/details", params=params)
-            installed_on = None
+            installed_on = "N/A"  # Default value in case data is not available
             if site_details_res.status_code == 200:
                 # Extract the 'installationDate' from the 'details' object in the response
                 details = site_details_res.json().get("details", {})
-                installed_on = details.get("installationDate")
+                installed_on = details.get("installationDate", "N/A")
 
             # Call 2: Get site overview (to retrieve lifetime and recent month energy)
             site_overview_res = requests.get(f"{self.domain}/site/{site_id}/overview", params=params)
-            lifetime_energy = None
-            recent_month_energy = None
-            energy_unit = "kWh"  # Assuming the unit is kWh as default
+            lifetime_energy = "0"
+            recent_month_energy = "0"
+            energy_unit = "Wh"  # Assuming the unit is Wh as default
+
             if site_overview_res.status_code == 200:
                 overview = site_overview_res.json().get("overview", {})
-                
-                # Extract lifetime energy and recent month's energy from the overview data
-                lifetime_energy = overview.get("lifeTimeData", {}).get("energy")
-                recent_month_energy = overview.get("lastMonthData", {}).get("energy")
 
-            # Combine all the retrieved data into the insights dictionary
-            insights_data = {
-                "id": site_id,
-                "installedOn": installed_on,
-                "lifetimeEnergy": lifetime_energy,
-                "recentMonthEnergy": recent_month_energy,
-                "energyUnit": energy_unit
-            }
+                # Extract lifetime energy and recent month's energy from the overview data
+                lifetime_energy = str(overview.get("lifeTimeData", {}).get("energy", "0"))
+                recent_month_energy = str(overview.get("lastMonthData", {}).get("energy", "0"))
+
+            # Create an instance of BuildingInsight with the retrieved data
+            insights_data = BuildingInsight(
+                id=site_id,
+                installed_on=installed_on,
+                lifetime_energy=lifetime_energy,
+                recent_month_energy=recent_month_energy,
+                energy_unit=energy_unit
+            )
 
             return insights_data
 
-        except requests.exceptions.HTTPError as e:
-            # Return the error message in case of a request failure
-            return {"error": str(e), "status": 500}
+        except requests.exceptions.RequestException as e:
+            # Handle general request exceptions and provide a meaningful error message
+            raise ValueError(f"Failed to retrieve insights for site {site_id}: {str(e)}")        

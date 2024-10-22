@@ -81,15 +81,15 @@ class EnergyController():
                 return ReponseModel(message="No data available", status=200)
             
             # Transform the data into the required format
-            insights_data = {
-                "id": id,
-                "installedOn": res.get("installedOn"),
-                "lifetimeEnergy": res.get("lifetimeEnergy"),
-                "recentMonthEnergy": res.get("recentMonthEnergy"),
-                "energyUnit": res.get("energyUnit")
-            }
+            # insights_data = {
+            #     "id": id,
+            #     "installedOn": res.get("installedOn"),
+            #     "lifetimeEnergy": res.get("lifetimeEnergy"),
+            #     "recentMonthEnergy": res.get("recentMonthEnergy"),
+            #     "energyUnit": res.get("energyUnit")
+            # }
 
-            return ReponseModel(message=insights_data, status=200)
+            return ReponseModel(message=res, status=200)
         except Exception as e:
             return ReponseModel(message=str(e), status=500)
 
