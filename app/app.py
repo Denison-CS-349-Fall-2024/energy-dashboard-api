@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from main.controller.solarController import solarController
+from app.main.controller.energyController import solarController
 from main.controller.fireStoreController import firebaseController
 
 # create and configure the app
