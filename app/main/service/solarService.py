@@ -1,5 +1,4 @@
 import requests, os
-from flask import Response
 from dotenv import dotenv_values
 from ..model.ReponseModel import ReponseModel
 
