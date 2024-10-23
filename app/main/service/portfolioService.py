@@ -1,6 +1,8 @@
 import requests, os
+from datetime import datetime
 from dotenv import dotenv_values
 from ..model.ReponseModel import ReponseModel
+from ..model.BuildingInsight import BuildingInsight
 
 
 class PortfolioService:
@@ -9,8 +11,15 @@ class PortfolioService:
     def __init__(self):
         self.domain = PortfolioService.__config["PORTFOLIO_URL"]
 
-    def get_electric_insights(self, property_id: int, cookie_string: str) -> ReponseModel:
-        # Corrected URL with no extra slash
+    def convert_epoch_to_date_string(self, epoch_time: int) -> str:
+        """
+        Converts an epoch time (in milliseconds) to a human-readable date string.
+        """
+        epoch_seconds = epoch_time / 1000
+        date_time = datetime.utcfromtimestamp(epoch_seconds)
+        return date_time.strftime('%Y-%m-%d %H:%M:%S')
+
+    def get_electric_insights(self, property_id: int, cookie_string: str) -> BuildingInsight:
         url = f"{self.domain}pm/property/{property_id}/energyUsage/chart"
         headers = {
             "Content-Type": "application/json",
@@ -26,8 +35,14 @@ class PortfolioService:
                 data = response.json()
 
                 # Check if there is data and if the series contains electric data
-                if data.get("noData") or not data.get("series"):
-                    return ReponseModel(message="No electric data available", status=200)
+                if not data.get("series"):
+                    return BuildingInsight(
+                        id=property_id,
+                        installed_on="N/A",
+                        lifetime_energy="0",
+                        recent_month_energy="0",
+                        energy_unit="kBtu"
+                    )
 
                 # Look for the data series with "dataTypeId": 1 (Electric - Grid)
                 electric_series = next(
@@ -38,23 +53,47 @@ class PortfolioService:
                 if electric_series:
                     # Extract the monthly electric data
                     electric_data = electric_series.get("data", [])
-                    return ReponseModel(
-                        message={
-                            "consumption": electric_data,
-                            "unit": data.get("yAxisName", "kBtu")
-                        },
-                        status=200
+
+                    # Get `installed_on` as the first timestamp
+                    installed_on = (
+                        self.convert_epoch_to_date_string(electric_data[0][0])
+                        if electric_data else "N/A"
                     )
 
-                return ReponseModel(message="Electric data series not found", status=200)
+                    # Get `recentMonthEnergy` as the last value
+                    recent_month_energy = str(electric_data[-1][1]) if electric_data else "0"
 
-            return ReponseModel(message="Failed to retrieve electric data", status=response.status_code)
+                    # Calculate `lifetimeEnergy` as the sum of all energy values
+                    lifetime_energy = str(sum(point[1] for point in electric_data))
+
+                    # Create a BuildingInsight instance with the extracted data
+                    return BuildingInsight(
+                        id=property_id,
+                        installed_on=installed_on,
+                        lifetime_energy=lifetime_energy,
+                        recent_month_energy=recent_month_energy,
+                        energy_unit="kBtu"
+                    )
+
+            # Return a default BuildingInsight instance in case of failure
+            return BuildingInsight(
+                id=property_id,
+                installed_on="N/A",
+                lifetime_energy="0",
+                recent_month_energy="0",
+                energy_unit="kBtu"
+            )
 
         except requests.exceptions.RequestException as e:
-            return ReponseModel(message=f"Error fetching electric data: {str(e)}", status=500)
+            return BuildingInsight(
+                id=property_id,
+                installed_on="N/A",
+                lifetime_energy="0",
+                recent_month_energy="0",
+                energy_unit="kBtu"
+            )
 
-    def get_gas_insights(self, property_id: int, cookie_string: str) -> ReponseModel:
-        # Corrected URL with no extra slash
+    def get_gas_insights(self, property_id: int, cookie_string: str) -> BuildingInsight:
         url = f"{self.domain}pm/property/{property_id}/energyUsage/chart"
         headers = {
             "Content-Type": "application/json",
@@ -70,8 +109,14 @@ class PortfolioService:
                 data = response.json()
 
                 # Check if there is data and if the series contains gas data
-                if data.get("noData") or not data.get("series"):
-                    return ReponseModel(message="No natural gas data available", status=200)
+                if not data.get("series"):
+                    return BuildingInsight(
+                        id=property_id,
+                        installed_on="N/A",
+                        lifetime_energy="0",
+                        recent_month_energy="0",
+                        energy_unit="kBtu"
+                    )
 
                 # Look for the data series with "dataTypeId": 2 (Natural Gas)
                 gas_series = next(
@@ -82,17 +127,42 @@ class PortfolioService:
                 if gas_series:
                     # Extract the monthly gas data
                     gas_data = gas_series.get("data", [])
-                    return ReponseModel(
-                        message={
-                            "consumption": gas_data,
-                            "unit": data.get("yAxisName", "kBtu")
-                        },
-                        status=200
+
+                    # Get `installed_on` as the first timestamp
+                    installed_on = (
+                        self.convert_epoch_to_date_string(gas_data[0][0])
+                        if gas_data else "N/A"
                     )
 
-                return ReponseModel(message="Natural gas data series not found", status=200)
+                    # Get `recentMonthEnergy` as the last value
+                    recent_month_energy = str(gas_data[-1][1]) if gas_data else "0"
 
-            return ReponseModel(message="Failed to retrieve natural gas data", status=response.status_code)
+                    # Calculate `lifetimeEnergy` as the sum of all energy values
+                    lifetime_energy = str(sum(point[1] for point in gas_data))
+
+                    # Create a BuildingInsight instance with the extracted data
+                    return BuildingInsight(
+                        id=property_id,
+                        installed_on=installed_on,
+                        lifetime_energy=lifetime_energy,
+                        recent_month_energy=recent_month_energy,
+                        energy_unit="kBtu"
+                    )
+
+            # Return a default BuildingInsight instance in case of failure
+            return BuildingInsight(
+                id=property_id,
+                installed_on="N/A",
+                lifetime_energy="0",
+                recent_month_energy="0",
+                energy_unit="kBtu"
+            )
 
         except requests.exceptions.RequestException as e:
-            return ReponseModel(message=f"Error fetching natural gas data: {str(e)}", status=500)
+            return BuildingInsight(
+                id=property_id,
+                installed_on="N/A",
+                lifetime_energy="0",
+                recent_month_energy="0",
+                energy_unit="kBtu"
+            )
