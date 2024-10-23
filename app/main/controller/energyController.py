@@ -8,6 +8,7 @@ from ..model.ReponseModel import ReponseModel
 energyController = APIRouter()
 class EnergyController():
     __solarService = SolarService()
+    __portfolioService = PortfolioService()
     __firebaseClient = FireBaseConfig()
     __config = dotenv_values(os.getcwd()+"/.env")
 
