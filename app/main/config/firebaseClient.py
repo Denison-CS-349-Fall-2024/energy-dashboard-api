@@ -26,4 +26,4 @@ class FireBaseConfig:
             .to_dict()
     
     def getFireStoreCollection(self,collection):
-        return firestore.client().collection(collection)
+        return firestore.client().collection(collection) 
