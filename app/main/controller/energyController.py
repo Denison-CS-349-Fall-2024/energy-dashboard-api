@@ -1,4 +1,5 @@
 from ..service.solarService import SolarService
+from ..service.portfolioService import PortfolioService
 from ..config.firebaseClient import FireBaseConfig
 import requests, os
 from dotenv import dotenv_values
