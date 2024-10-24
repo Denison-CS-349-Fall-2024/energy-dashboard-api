@@ -57,4 +57,43 @@ class EnergyController():
         except:
             return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
 
-    
+    @energyController.get('/get_chart_data/')
+    def get_chart_data(property_ids: str, chart_type: str, year: str, session_cookie: str) -> ReponseModel:
+        """
+        Fetches chart data for multiple properties based on the specified chart type and year.
+        :param property_ids: Comma-separated list of property IDs.
+        :param chart_type: The type of chart data ('d', 'm', 'y', 'all').
+        :param year: The year for which data is being requested.
+        :param session_cookie: The session cookie string for authentication.
+        :return: ReponseModel with chart data or error message.
+        """
+        try:
+            # Split property_ids into a list
+            property_ids_list = property_ids.split(',')
+
+            # Handle different chart types
+            if chart_type == 'm':
+                # Call the service function to get monthly data
+                res = EnergyController.__solarService.call_m_function(property_ids_list, year, session_cookie)
+
+            # Add logic for other chart types if needed
+            elif chart_type == 'd':
+                # Placeholder for daily data handling
+                res = {"error": "Daily data fetching is not implemented yet."}
+            elif chart_type == 'y':
+                # Placeholder for yearly data handling
+                res = {"error": "Yearly data fetching is not implemented yet."}
+            elif chart_type == 'all':
+                # Placeholder for fetching all data
+                res = {"error": "Fetching all data is not implemented yet."}
+            else:
+                return ReponseModel(message="Invalid chart type", status=400)
+
+            # Check if the response is empty
+            if not res:
+                return ReponseModel(message="No data available", status=200)
+
+            return ReponseModel(message=res, status=200)
+        except Exception as e:
+            print(f"Error in get_chart_data: {e}")
+            return ReponseModel(message=str(e), status=500)
