@@ -78,6 +78,7 @@ class EnergyController():
             return ReponseModel(message=response,status=200)
         except:
             return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
+        
     @energyController.get('/get_chart_data/')
     def get_chart_data(property_ids: str, chart_type: str, year: str, session_cookie: str) -> ReponseModel:
         """
