@@ -1,15 +1,17 @@
 from pydantic import BaseModel
 class BuildingDocument(BaseModel):
-    property_name: str
-    portfolio_id: str
-    solarEdge_id: str
+    id: int
+    name: str
+    portfolio_id: int
+    solarEdge_id: int
 
     def to_dict(self):
         return {
-            "property_name": self.property_name,
+            "name": self.name,
             "portfolio_id": self.portfolio_id,
-            "solarEdge_id": self.solarEdge_id
+            "solarEdge_id": self.solarEdge_id,
+            "id": self.id
         }
     
     def __repr__(self) -> str:
-        return f"Building(property_name={self.property_name}, portfolio_id={self.portfolio_id},solarEdge_id={self.solarEdge_id})"
+        return f"Building(name={self.name},portfolio_id={self.portfolio_id},solarEdge_id={self.solarEdge_id})"

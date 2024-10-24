@@ -1,9 +1,10 @@
 from ..service.solarService import SolarService
 from ..config.firebaseClient import FireBaseConfig
-import requests, os
+import requests, os, math
 from dotenv import dotenv_values
 from fastapi import APIRouter
 from ..model.ReponseModel import ReponseModel
+from ..model.BuildingDocument import BuildingDocument
 
 energyController = APIRouter()
 class EnergyController():
@@ -57,4 +58,22 @@ class EnergyController():
         except:
             return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
 
-    
+    @energyController.get('/sites')
+    def get_sites()->ReponseModel:
+        try:
+            response=[]
+            collection=EnergyController.__firebaseClient.\
+                    getFireStoreCollection(EnergyController.__config["FIRESTORE_BUILDING_RESOURCE_COLLECTION"])
+            doc_sites = collection.stream()
+            for doc in doc_sites:
+                doc_data=doc.to_dict()
+                if not math.isnan(doc_data["portfolio_manager_id"]): 
+                    doc_data["portfolio_manager_id"]=int(doc_data["portfolio_manager_id"])
+                else: doc_data["portfolio_manager_id"]=-1
+                if not math.isnan(doc_data["solar_edge_id"]):
+                    doc_data["solar_edge_id"]=int(doc_data["solar_edge_id"])
+                else: doc_data["solar_edge_id"]=-1
+                response.append(BuildingDocument(name=doc_data["name"],solarEdge_id=doc_data["solar_edge_id"],portfolio_id=doc_data["portfolio_manager_id"],id=int(doc.id)))
+            return ReponseModel(message=response,status=200)
+        except:
+            return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
