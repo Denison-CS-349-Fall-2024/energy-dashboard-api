@@ -4,7 +4,7 @@ import requests, os
 from dotenv import dotenv_values
 from fastapi import APIRouter
 from ..model.ReponseModel import ReponseModel
-
+ 
 energyController = APIRouter()
 class EnergyController():
     __solarService = SolarService()
