@@ -3,7 +3,7 @@ from dotenv import dotenv_values
 from ..model.ReponseModel import ReponseModel
 from ..model.BuildingInsight import BuildingInsight
 from ..model.BuildingDocument import BuildingDocument
-
+from datetime import date
 
 class SolarService:
     __config = dotenv_values(os.getcwd()+"/.env")
@@ -39,82 +39,7 @@ class SolarService:
             return ReponseModel(message="Unauthorized",status=401)
         except:
             return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
-    
-    # New function: Fetch energy data from EnergyStar for multiple properties
-    def fetch_energy_data(self, property_ids, session_cookie):
-        base_url = "https://portfoliomanager.energystar.gov/pm/property/{}/energyUsage/chart"
-        headers = {
-            "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Connection": "keep-alive",
-            "Cookie": session_cookie,  # Use the provided cookie  
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-            "X-Requested-With": "XMLHttpRequest",
-        }
-
-        results = []
-        for property_id in property_ids:
-            url = base_url.format(property_id)
-            try:
-                response = requests.get(url, headers=headers)
-                response.raise_for_status()  # Raise an error if the response status is not 200
-                results.append({"property_id": property_id, "data": response.json()})
-            except requests.exceptions.RequestException as e:
-                print(f"Error fetching data for property {property_id}: {e}")
-                results.append({"property_id": property_id, "error": str(e)})
-
-        return results  # Return a list of results for all properties
-
-    # New function: Call 'month' function for multiple properties
-    def call_m_function(self, property_ids, year, session_cookie):
-        data_list = self.fetch_energy_data(property_ids, session_cookie)
-        results = []
-
-        for data_entry in data_list:
-            property_id = data_entry.get('property_id')
-            data = data_entry.get('data')
-            
-            if not data or data.get('noData', True):
-                results.append({"property_id": property_id, "error": "No data available"})
-                continue
-
-            series_data = data.get('series', [])
-            short_months = data.get('shortMonths', [])
-            
-            # Prepare sources data for each property
-            sources = []
-            for series in series_data:
-                source_type = series.get('name').lower()
-                if 'electric' in source_type:
-                    sources.append({
-                        "source": "electric",
-                        "id": series.get('dataTypeId'),
-                        "data": series.get('dataPoints', [])
-                    })
-                elif 'solar' in source_type:
-                    sources.append({
-                        "source": "solar",
-                        "id": series.get('dataTypeId'),
-                        "data": series.get('dataPoints', [])
-                    })
-                elif 'natural gas' in source_type:
-                    sources.append({
-                        "source": "natural_gas",
-                        "id": series.get('dataTypeId'),
-                        "data": series.get('dataPoints', [])
-                    })
-
-            response = {
-                "property_id": property_id,
-                "chart_type": "m",
-                "chart_time": year,
-                "sources": sources
-            }
-            results.append(response)
-
-        return results  
         
-#       
 
     def get_solar_insights(self, api_key: str, site_id: int) -> BuildingInsight:
         params = {"api_key": api_key}
@@ -154,4 +79,11 @@ class SolarService:
 
         except requests.exceptions.RequestException as e:
             # Handle general request exceptions and provide a meaningful error message
-            raise ValueError(f"Failed to retrieve insights for site {site_id}: {str(e)}")        
+            raise ValueError(f"Failed to retrieve insights for site {site_id}: {str(e)}")       
+
+    def solar_all_function(self,property_id, api_key)->ReponseModel:
+        quickInsight = self.get_solar_insights(api_key,property_id)
+        installTime = quickInsight.installed_on
+        res = self.get_site_energy(api_key,installTime,str(date.today()),"YEAR",property_id)
+        return res.message
+        
