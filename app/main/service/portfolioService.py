@@ -105,7 +105,7 @@ class PortfolioService:
 
                     # Get `installed_on` as the first timestamp
                     installed_on = (
-                        self.convert_epoch_to_date_string(electric_data[0][0])
+                        str(self.convert_epoch_to_date_string(electric_data[0][0]))
                         if electric_data else "N/A"
                     )
 
@@ -179,7 +179,7 @@ class PortfolioService:
 
                     # Get `installed_on` as the first timestamp
                     installed_on = (
-                        self.convert_epoch_to_date_string(gas_data[0][0])
+                        str(self.convert_epoch_to_date_string(gas_data[0][0]))
                         if gas_data else "N/A"
                     )
 
