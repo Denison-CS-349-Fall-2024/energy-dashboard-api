@@ -92,6 +92,15 @@ class EnergyController():
                 return ReponseModel(message="Invalid chart type", status=400)
 
             # Check if the response is empty
+            if not res:
+                return ReponseModel(message="No data available", status=200)
+
+            return ReponseModel(message=res, status=200)
+        except Exception as e:
+            print(f"Error in get_chart_data: {e}")
+            return ReponseModel(message=str(e), status=500)
+            return ReponseModel(message=str(e), status=500)
+
     
     @energyController.get('/site/{id}/quick_insights/')
     def get_quick_insights(id: int, quickInsightsType: str) -> ReponseModel:
@@ -114,13 +123,5 @@ class EnergyController():
             else:
                 return ReponseModel(message="Invalid insights type", status=400)
             
-            # Check if response is empty
-            if not res:
-                return ReponseModel(message="No data available", status=200)
-
-            return ReponseModel(message=res, status=200)
-        except Exception as e:
-            print(f"Error in get_chart_data: {e}")
-            return ReponseModel(message=str(e), status=500)
-            return ReponseModel(message=str(e), status=500)
-
+       
+            
