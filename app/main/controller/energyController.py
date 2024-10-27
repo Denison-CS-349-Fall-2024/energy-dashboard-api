@@ -62,7 +62,7 @@ class EnergyController():
     @energyController.get('/get_chart_data/')
     def get_chart_data(property_ids: str, chart_type: str, year: str, session_cookie: str) -> ReponseModel:
         """
-        Fetches chart data for multiple properties based on the specified chart type and year.
+        Fetches chart data for multiple propertys based on the specified chart type and year.
         :param property_ids: Comma-separated list of property IDs.
         :param chart_type: The type of chart data ('d', 'm', 'y', 'all').
         :param year: The year for which data is being requested.
@@ -73,12 +73,14 @@ class EnergyController():
             # Split property_ids into a list
             property_ids_list = property_ids.split(',')
 
+            # Validate the input list
+            if not property_ids_list or not all(property_ids_list):
+                return ReponseModel(message="Invalid property IDs", status=400)
+
             # Handle different chart types
             if chart_type == 'm':
-                # Call the service function to get monthly data
+                # Call the service function to get monthly data for multiple propertys
                 res = EnergyController.__solarService.call_m_function(property_ids_list, year, session_cookie)
-
-            # Add logic for other chart types if needed
             elif chart_type == 'd':
                 # Placeholder for daily data handling
                 res = {"error": "Daily data fetching is not implemented yet."}
@@ -91,7 +93,10 @@ class EnergyController():
             else:
                 return ReponseModel(message="Invalid chart type", status=400)
 
-            # Check if the response is empty
+            # Check if the response is empty or contains an error
+            if isinstance(res, dict) and "error" in res:
+                return ReponseModel(message=res["error"], status=400)
+
             if not res:
                 return ReponseModel(message="No data available", status=200)
 
@@ -99,8 +104,6 @@ class EnergyController():
         except Exception as e:
             print(f"Error in get_chart_data: {e}")
             return ReponseModel(message=str(e), status=500)
-            return ReponseModel(message=str(e), status=500)
-
     
     @energyController.get('/site/{id}/quick_insights/')
     def get_quick_insights(id: int, quickInsightsType: str) -> ReponseModel:
