@@ -6,7 +6,6 @@ from dotenv import dotenv_values
 from fastapi import APIRouter
 from ..model.ReponseModel import ReponseModel
 from ..model.BuildingDocument import BuildingDocument
-
  
 energyController = APIRouter()
 class EnergyController():
@@ -111,24 +110,35 @@ class EnergyController():
             return ReponseModel(message=str(e), status=500)    
 
     @energyController.get('/get_chart_data/')
-    def get_chart_data(property_ids: str, chart_type: str, year: str, session_cookie: str) -> ReponseModel:
+    def get_chart_data(property_id: int, chart_type: str, chart_time: str, session_cookie: str) -> ReponseModel:
         """
         Fetches chart data for multiple properties based on the specified chart type and year.
-        :param property_ids: Comma-separated list of property IDs.
+        :param property_id: building ID.
         :param chart_type: The type of chart data ('d', 'm', 'y', 'all').
-        :param year: The year for which data is being requested.
+        :param chart_time: The time for which data is being requested.
         :param session_cookie: The session cookie string for authentication.
         :return: ReponseModel with chart data or error message.
         """
         try:
-            # Split property_ids into a list
-            property_ids_list = property_ids.split(',')
+            #Get solar API key
+            site_api_key = EnergyController.\
+                __firebaseClient\
+                .getFireStoreDB(EnergyController.__config["FIRESTORE_COLLECTION"],\
+                                EnergyController.__config["FIRESTORE_SOLAR_DOCUMENT"])\
+                                ["solarEdgeKey"]
+
+            #Get building SolarId and PortfolioId. We need those id since the same building could have 2 different solarId and portfolioId
+            data = EnergyController.__firebaseClient.\
+                    getFireStoreDB(EnergyController.__config["FIRESTORE_BUILDING_RESOURCE_COLLECTION"],str(property_id))
+            solarId, portfolioId = data.get("solar_edge_id"), data.get("portfolio_manager_id")
+
+            # property_ids_list = property_ids.split(',')
 
             # Handle different chart types
             if chart_type == 'm':
                 # Call the service function to get monthly data
-                res = EnergyController.__solarService.call_m_function(property_ids_list, year, session_cookie)
-
+                # solar = EnergyController.__solarService.call_m_function(property_ids_list, chart_time, session_cookie)
+                return
             # Add logic for other chart types if needed
             elif chart_type == 'd':
                 # Placeholder for daily data handling
@@ -138,7 +148,12 @@ class EnergyController():
                 res = {"error": "Yearly data fetching is not implemented yet."}
             elif chart_type == 'all':
                 # Placeholder for fetching all data
-                res = {"error": "Fetching all data is not implemented yet."}
+                res = dict()
+                if not math.isnan(solarId): 
+                    res["solar"] = EnergyController.__solarService.solar_all_function(int(solarId), site_api_key)
+                if not math.isnan(portfolioId): 
+                    res["electric"] = EnergyController.__portfolioService.electric_all_function(int(portfolioId), session_cookie)
+                    res["natural_gas"] = EnergyController.__portfolioService.natural_gas_all_function(int(portfolioId), session_cookie)
             else:
                 return ReponseModel(message="Invalid chart type", status=400)
 
@@ -148,5 +163,4 @@ class EnergyController():
 
             return ReponseModel(message=res, status=200)
         except Exception as e:
-            print(f"Error in get_chart_data: {e}")
             return ReponseModel(message=str(e), status=500)
