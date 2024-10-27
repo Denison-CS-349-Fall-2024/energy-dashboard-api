@@ -1,4 +1,4 @@
-import requests, os
+import requests, os, calendar
 from dotenv import dotenv_values
 from ..model.ReponseModel import ReponseModel
 from ..model.BuildingInsight import BuildingInsight
@@ -40,82 +40,6 @@ class SolarService:
         except:
             return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
     
-    # New function: Fetch energy data from EnergyStar for multiple properties
-    def fetch_energy_data(self, property_ids, session_cookie):
-        base_url = "https://portfoliomanager.energystar.gov/pm/property/{}/energyUsage/chart"
-        headers = {
-            "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Connection": "keep-alive",
-            "Cookie": session_cookie,  # Use the provided cookie  
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-            "X-Requested-With": "XMLHttpRequest",
-        }
-
-        results = []
-        for property_id in property_ids:
-            url = base_url.format(property_id)
-            try:
-                response = requests.get(url, headers=headers)
-                response.raise_for_status()  # Raise an error if the response status is not 200
-                results.append({"property_id": property_id, "data": response.json()})
-            except requests.exceptions.RequestException as e:
-                print(f"Error fetching data for property {property_id}: {e}")
-                results.append({"property_id": property_id, "error": str(e)})
-
-        return results  # Return a list of results for all properties
-
-    # New function: Call 'month' function for multiple properties
-    def call_m_function(self, property_ids, year, session_cookie):
-        data_list = self.fetch_energy_data(property_ids, session_cookie)
-        results = []
-
-        for data_entry in data_list:
-            property_id = data_entry.get('property_id')
-            data = data_entry.get('data')
-            
-            if not data or data.get('noData', True):
-                results.append({"property_id": property_id, "error": "No data available"})
-                continue
-
-            series_data = data.get('series', [])
-            short_months = data.get('shortMonths', [])
-            
-            # Prepare sources data for each property
-            sources = []
-            for series in series_data:
-                source_type = series.get('name').lower()
-                if 'electric' in source_type:
-                    sources.append({
-                        "source": "electric",
-                        "id": series.get('dataTypeId'),
-                        "data": series.get('dataPoints', [])
-                    })
-                elif 'solar' in source_type:
-                    sources.append({
-                        "source": "solar",
-                        "id": series.get('dataTypeId'),
-                        "data": series.get('dataPoints', [])
-                    })
-                elif 'natural gas' in source_type:
-                    sources.append({
-                        "source": "natural_gas",
-                        "id": series.get('dataTypeId'),
-                        "data": series.get('dataPoints', [])
-                    })
-
-            response = {
-                "property_id": property_id,
-                "chart_type": "m",
-                "chart_time": year,
-                "sources": sources
-            }
-            results.append(response)
-
-        return results  
-        
-#       
-
     def get_solar_insights(self, api_key: str, site_id: int) -> BuildingInsight:
         params = {"api_key": api_key}
 
@@ -155,3 +79,101 @@ class SolarService:
         except requests.exceptions.RequestException as e:
             # Handle general request exceptions and provide a meaningful error message
             raise ValueError(f"Failed to retrieve insights for site {site_id}: {str(e)}")        
+
+    # New function: Fetch energy data from EnergyStar for multiple properties
+    def fetch_energy_data(self, property_ids, session_cookie) -> ReponseModel:
+        base_url = "https://portfoliomanager.energystar.gov/pm/property/{}/energyUsage/chart"
+        headers = {
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Connection": "keep-alive",
+            "Cookie": session_cookie,  # Use the provided cookie  
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            "X-Requested-With": "XMLHttpRequest",
+        }
+
+        results = []
+        try:
+            for property_id in property_ids:
+                url = base_url.format(property_id)
+                response = requests.get(url, headers=headers)
+                if response.status_code == 200:
+                    results.append({"property_id": property_id, "data": response.json()})
+                else:
+                    results.append({"property_id": property_id, "error": "Failed to fetch data"})
+            return ReponseModel(message=results, status=200)
+        except requests.exceptions.RequestException as e:
+            return ReponseModel(message=str(e), status=500)
+
+    # New function: Call 'month' function for multiple properties
+    def call_m_function(self, property_ids, year, month, session_cookie) -> ReponseModel:
+    # Calculate the number of days in the specified month
+        try:
+            month = int(month)
+            if month < 1 or month > 12:
+                raise ValueError("Invalid month. Please provide a value between 1 and 12.")
+        except ValueError as e:
+            return [{"error": str(e)}]
+
+        days_in_month = calendar.monthrange(int(year), month)[1]
+        short_days = [f"{year}-{month:02d}-{day:02d}" for day in range(1, days_in_month + 1)]
+        
+        # Fetch energy data for the given properties
+        fetch_response = self.fetch_energy_data(property_ids, session_cookie)
+        if fetch_response.status != 200:
+            return fetch_response  # Return if fetch operation failed
+
+        data_list = fetch_response.message
+        results = []
+
+        for data_entry in data_list:
+            property_id = data_entry.get('property_id')
+            data = data_entry.get('data')
+            
+            if not data or data.get('noData', True):
+                results.append({"property_id": property_id, "error": "No data available"})
+                continue
+
+            series_data = data.get('series', [])
+            
+            # Prepare sources data for each property
+            sources = []
+            for series in series_data:
+                source_type = series.get('name').lower()
+                data_points = series.get('dataPoints', [])
+
+                # Filter data points for the specified month and days
+                filtered_data = [
+                    data_point for data_point in data_points
+                    if any(day in data_point.get('date', '') for day in short_days)
+                ]
+
+                # Add source-specific data
+                if 'electric' in source_type:
+                    sources.append({
+                        "source": "electric",
+                        "id": series.get('dataTypeId'),
+                        "data": filtered_data
+                    })
+                elif 'solar' in source_type:
+                    sources.append({
+                        "source": "solar",
+                        "id": series.get('dataTypeId'),
+                        "data": filtered_data
+                    })
+                elif 'natural gas' in source_type:
+                    sources.append({
+                        "source": "natural_gas",
+                        "id": series.get('dataTypeId'),
+                        "data": filtered_data
+                    })
+
+            response = {
+                "property_id": property_id,
+                "chart_type": "m",
+                "chart_time": f"{year}-{month:02d}",
+                "sources": sources
+            }
+            results.append(response)
+
+        return ReponseModel(message=results, status=200)
