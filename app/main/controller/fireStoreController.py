@@ -1,4 +1,3 @@
-from ..service.solarService import SolarService
 from ..config.firebaseClient import FireBaseConfig
 import requests, os, uuid
 from dotenv import dotenv_values
@@ -17,6 +16,8 @@ class FireStoreController():
             try:
                 collection=FireStoreController.__firebaseClient.\
                     getFireStoreCollection(FireStoreController.__config["FIRESTORE_BUILDING_RESOURCE_COLLECTION"])
+                writeBuilding = building.to_dict()
+                del writeBuilding["id"]
                 collection.add(building.to_dict(),str(uuid.uuid4()))
                 return ReponseModel(message=building.__repr__(), status=200)
             except:
