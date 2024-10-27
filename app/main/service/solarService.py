@@ -62,6 +62,7 @@ class SolarService:
 
         return results  # Return a list of results for all properties
 
+
     # New function: Call 'month' function for multiple properties
     def call_m_function(self, property_ids, year, session_cookie):
         data_list = self.fetch_energy_data(property_ids, session_cookie)
@@ -111,4 +112,31 @@ class SolarService:
 
         return results  
         
-#       
+#
+"""
+    def call_d_function(portfolio_id, solaredge_id, startDate, endDate):
+        solar_data = None
+        portfolio_data = None
+        solaredge_api_key = EnergyController. \
+                __firebaseClient \
+                .getFireStoreDB(EnergyController.__config["FIRESTORE_COLLECTION"], \
+                                EnergyController.__config["FIRESTORE_SOLAR_DOCUMENT"]) \
+                ["solarEdgeKey"]
+            url = f'https://monitoringapi.solaredge.com/site/{site_id}/energyDetails'
+            params = {
+                'startTime': startDate,  # Start time in yyyy-MM-dd HH:mm:ss format
+                'endTime': endDate,  # End time in yyyy-MM-dd HH:mm:ss format
+                'timeUnit': 'QUARTER_OF_AN_HOUR',  # Time unit (e.g., DAY, WEEK, MONTH)
+                'meters': 'PRODUCTION',  # Meters to include: PRODUCTION, CONSUMPTION, etc.
+                'api_key': solaredge_api_key
+            }
+            res = requests.get(url, params=params)
+
+            if res.status_code == 200:
+                solar_data = res.json()
+            else:
+                print(f"Error: {res.status_code} - {res.text}")
+        
+        except:
+            return ReponseModel(message=str(requests.exceptions.HTTPError), status=500)
+"""
