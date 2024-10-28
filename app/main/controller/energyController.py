@@ -107,7 +107,7 @@ class EnergyController():
             return ReponseModel(message=str(e), status=500)    
 
     @energyController.get('/get_chart_data/')
-    def get_chart_data(property_id: int, chart_type: str, chart_time: str, session_cookie: str) -> ReponseModel:
+    def get_chart_data(property_id: int, chart_type: str, start_time: str, end_time: str, session_cookie: str) -> ReponseModel:
         """
         Fetches chart data for multiple properties based on the specified chart type and year.
         :param property_id: building ID.
@@ -141,8 +141,14 @@ class EnergyController():
                 # Placeholder for daily data handling
                 res = {"error": "Daily data fetching is not implemented yet."}
             elif chart_type == 'y':
+                res = dict()
+                if not math.isnan(solarId): 
+                    res["solar"] = EnergyController.__solarService.solar_y_function(int(solarId), site_api_key)
+                # if not math.isnan(portfolioId): 
+                #     res["electric"] = EnergyController.__portfolioService.electric_all_function(int(portfolioId), session_cookie)
+                #     res["natural_gas"] = EnergyController.__portfolioService.natural_gas_all_function(int(portfolioId), session_cookie)
                 # Placeholder for yearly data handling
-                res = {"error": "Yearly data fetching is not implemented yet."}
+                #res = {"error": "Yearly data fetching is not implemented yet."}
             elif chart_type == 'all':
                 # Placeholder for fetching all data
                 res = dict()

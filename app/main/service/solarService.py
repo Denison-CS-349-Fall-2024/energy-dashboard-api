@@ -86,4 +86,7 @@ class SolarService:
         installTime = quickInsight.installed_on
         res = self.get_site_energy(api_key,installTime,str(date.today()),"YEAR",property_id)
         return res.message
-        
+    
+    def solar_y_function(self,property_id, startDate, endDate, api_key)->ReponseModel:
+        res = self.get_site_energy(api_key,startDate,endDate,"MONTH",property_id)
+        return res.message
