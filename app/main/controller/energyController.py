@@ -141,8 +141,10 @@ class EnergyController():
                 res = dict()
                 if not math.isnan(solarId):
                     res["solar"] = EnergyController.__solarService.get_d_function(int(solarId), site_api_key, start_date, end_date)
+                # ----- PORTFOLIO SITE ONLY SUPPORTS MONTHLY DATA
                 #if not math.isnan(portfolioId):
                 #    res["electric"] = EnergyController.__portfolioService.get_d_function(int(portfolioId), session_cookie)
+                #    res["natural_gas"] = EnergyController.__portfolioService.get_d_function(int(portfolioId), session_cookie)
             elif chart_type == 'y':
                 # Placeholder for yearly data handling
                 res = {"error": "Yearly data fetching is not implemented yet."}
