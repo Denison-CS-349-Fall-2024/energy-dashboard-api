@@ -39,7 +39,6 @@ class SolarService:
             return ReponseModel(message="Unauthorized",status=401)
         except:
             return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
-        
 
     def get_solar_insights(self, api_key: str, site_id: int) -> BuildingInsight:
         params = {"api_key": api_key}
@@ -86,4 +85,7 @@ class SolarService:
         installTime = quickInsight.installed_on
         res = self.get_site_energy(api_key,installTime,str(date.today()),"YEAR",property_id)
         return res.message
-        
+
+    def get_d_function(self, property_id, api_key, start_date, end_date)->ReponseModel:
+        res = self.get_site_energy(api_key, start_date, end_date, "QUARTER_OF_AN_HOUR", property_id)
+        return res.message

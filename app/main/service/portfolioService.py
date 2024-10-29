@@ -233,3 +233,12 @@ class PortfolioService:
             return ReponseModel(message=energyResponse, status=200)
         except:
             return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
+
+    def get_d_function(self, property_id, session_cookie, start_date, end_date, energy_type: str):
+        energy_response = {"id": property_id}
+        try:
+            energy_year = self.get_energy_data(session_cookie, property_id, energy_type)
+            energy_response["data"] = energy_year
+            return ReponseModel(message=energy_response, status=200)
+        except:
+            return ReponseModel(message=str(requests.exceptions.HTTPError), status=500)
