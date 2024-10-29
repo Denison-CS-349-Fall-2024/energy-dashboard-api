@@ -40,17 +40,6 @@ class SolarService:
         except:
             return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
 
-    def get_site_energy_detail(self,api_key,startDate,endDate,timeUnit,site_id)->ReponseModel:
-        params = {"api_key": api_key, "startDate": startDate, "endDate": endDate, "timeUnit": timeUnit}
-        try:
-            res = requests.get(self.domain+f"site/{site_id}/energyDetails",params=params)
-            if res.status_code==200:
-                return ReponseModel(message=res.json(),status=200)
-            return ReponseModel(message="Unauthorized",status=401)
-        except:
-            return ReponseModel(message=str(requests.exceptions.HTTPError),status=500)
-        
-
     def get_solar_insights(self, api_key: str, site_id: int) -> BuildingInsight:
         params = {"api_key": api_key}
 
@@ -98,5 +87,5 @@ class SolarService:
         return res.message
 
     def get_d_function(self, property_id, api_key, start_date, end_date)->ReponseModel:
-        res = self.get_site_energy_detail(api_key, start_date, end_date, "QUARTER_OF_AN_HOUR", property_id)
+        res = self.get_site_energy(api_key, start_date, end_date, "QUARTER_OF_AN_HOUR", property_id)
         return res.message
