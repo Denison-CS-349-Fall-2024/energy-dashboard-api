@@ -1,4 +1,8 @@
-*__pycache__
-*.json
-*.idea
-energy-dashboard
+venv
+__pycache__
+serviceAccountKey.json
+energy_star.txt
+auth_routes.py
+security.py
+.vscode
+.env
