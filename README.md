@@ -1,11 +1,9 @@
 # energy-dashboard-api
 
-## General rules
-- stg is a testing branch. 
-- Merge dev branch to stg and make sure tests are passed before merging to main.
-- beside main and stg all other branches could work as dev branch. 
-
-## Set up 
-1. Create a venv
-2. run `pip install -r requirements.txt`
-3. run `python app/app.py` to run program
+## Spin up local dev env
+1. create .env file and ask Loc/Duc to share the content of this file
+2. "python3 -m venv venv" to create virtual env
+3. "source venv/bin/activate" to activate virtual env
+4. "pip install -r requirements.txt" to install dependencies
+5. "uvicorn app.main:app --reload" to run FastAPI app
+6. http://localhost:8000
