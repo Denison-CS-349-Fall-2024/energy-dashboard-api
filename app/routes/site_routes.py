@@ -128,3 +128,17 @@ async def chart_data(
         )
 
     return response
+
+@router.get("/envBenefit")
+async def getEnvBenefit():
+    docs = db.collection("sites").stream()
+    sites = [{"id": doc.id, **doc.to_dict()} async for doc in docs if "id_solar_edge" in doc.to_dict() and doc.to_dict()["id_solar_edge"] is not None]
+    share_data = {
+        "Co2EmissionSaved": 0,
+        "treesPlanted": 0,
+    }
+    data_lock = asyncio.Lock()
+    await asyncio.gather(*(solar_service.get_env_benefit(site["id_solar_edge"],data_lock,share_data) for site in sites))
+    return share_data
+
+    

@@ -61,6 +61,22 @@ class SolarService:
                 response.raise_for_status()  # Raise an error for bad responses
                 json_in_text = await response.text()
                 return json.loads(json_in_text)
+    
+    async def get_env_benefit(self, site_id:int, data_lock, share_data):
+        async with aiohttp.ClientSession() as session:
+            url = f"{self.base_url}/site/{site_id}/envBenefits?systemUnits=Imperial"
+            params = {"api_key": self.api_key, "size": 5000}
+            try:
+                async with session.get(url, params=params) as response:
+                    json_in_text = await response.text()
+                    json_dict = json.loads(json_in_text)
+                    async with data_lock:
+                        if "envBenefits" in json_dict:
+                            share_data["Co2EmissionSaved"]+=json_dict.get("envBenefits").get("gasEmissionSaved").get("co2")
+                            share_data["treesPlanted"]+=json_dict.get("envBenefits").get("treesPlanted")
+            except Exception as e:
+                #keep calculating + avoid hard stor from having exception
+                print('some site_id might not have access to SolarEdge', e)
 
 
 solar_service = SolarService()
