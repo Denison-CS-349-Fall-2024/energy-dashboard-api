@@ -4,8 +4,10 @@ from collections import defaultdict
 from datetime import date, datetime
 
 import pandas as pd
-from app.schemas import ChartType, QuickInsightsType
 from fuzzywuzzy import fuzz, process
+
+from app.config import settings
+from app.schemas import ChartType, QuickInsightsType
 
 TIME_UNIT_MAPPING = {"All": "YEAR", "Y": "MONTH", "M": "DAY", "D": "HOUR"}
 NAME_SIMILARITY_THRESHOLD = 80
@@ -87,15 +89,15 @@ def infer_quick_insights_from_solar_edge_data(site_details, site_overview):
 
 
 def infer_quick_insights_from_energy_star_data(data, type: QuickInsightsType):
-    if type == QuickInsightsType.electric:
-        electric_data = []
+    if type == QuickInsightsType.electric_grid:
+        electric_grid_data = []
 
         for each in data["series"]:
             if each["dataTypeId"] == 1:
-                electric_data = each["data"]
+                electric_grid_data = each["data"]
                 break
 
-        if not electric_data:
+        if not electric_grid_data:
             return {
                 "installed_on": None,
                 "lifetime_energy": None,
@@ -106,11 +108,11 @@ def infer_quick_insights_from_energy_star_data(data, type: QuickInsightsType):
         energy_unit = get_energy_unit_from_raw(data["yAxisName"])
         # first data point in the source = the first time this site is registered with energy star
         installed_on = convert_unix_time_to_datetime_string(
-            electric_data[0][0], only_need_date=True
+            electric_grid_data[0][0], only_need_date=True
         )
-        lifetime_energy = sum([data_point[1] for data_point in electric_data])
+        lifetime_energy = sum([data_point[1] for data_point in electric_grid_data])
         # last data point in the source = the last time this site is registered with energy star
-        recent_month_energy = electric_data[-1][1]
+        recent_month_energy = electric_grid_data[-1][1]
     elif type == QuickInsightsType.natural_gas:
         natural_gas_data = []
 
@@ -144,35 +146,40 @@ def infer_quick_insights_from_energy_star_data(data, type: QuickInsightsType):
     }
 
 
-def format_solar_edge_data(data):
-    data = data["energy"]
-    energy_unit = data["unit"]
-    # ignore data_points that have NULL values
-    values = [data_point for data_point in data["values"] if data_point["value"]]
+def format_solar_edge_data(sites_data: list[dict]):
+    merged = defaultdict(float)
+    for data in sites_data:
+        energy_unit = data["sitesEnergy"]["unit"]
+        for site in data["sitesEnergy"]["siteEnergyList"]:
+            for entry in site["energyValues"]["values"]:
+                if entry["value"]:
+                    merged[entry["date"]] += entry["value"]
+
+    merged_list = [{"date": date, "value": value} for date, value in merged.items()]
     return [
         {
             "label": QuickInsightsType.solar,
             "energy_unit": energy_unit,
-            "data": values,
+            "data": merged_list,
         }
     ]
 
 
 def infer_energy_star_data(data, chart_date: date, chart_type: ChartType):
-    electric_data = []
+    electric_grid_data = []
     natural_gas_data = []
 
     for each in data["series"]:
         if each["dataTypeId"] == 1:
-            electric_data = each["data"]
+            electric_grid_data = each["data"]
         elif each["dataTypeId"] == 2:
             natural_gas_data = each["data"]
 
     energy_unit = get_energy_unit_from_raw(data["yAxisName"])
     if chart_type == ChartType.Y:
-        filtered_electric_data = [
+        filtered_electric_grid_data = [
             {"date": convert_unix_time_to_datetime_string(unixtime), "value": value}
-            for unixtime, value in electric_data
+            for unixtime, value in electric_grid_data
             if datetime.fromtimestamp(unixtime / 1000).year == chart_date.year
         ]
         filtered_natural_gas_data = [
@@ -181,20 +188,20 @@ def infer_energy_star_data(data, chart_date: date, chart_type: ChartType):
             if datetime.fromtimestamp(unixtime / 1000).year == chart_date.year
         ]
     elif chart_type == ChartType.All:
-        electric_data_grouped_by_year = defaultdict(list)
+        electric_grid_data_grouped_by_year = defaultdict(list)
         natural_gas_data_grouped_by_year = defaultdict(list)
 
-        for unixtime, value in electric_data:
+        for unixtime, value in electric_grid_data:
             year = datetime.fromtimestamp(unixtime / 1000).year
-            electric_data_grouped_by_year[year].append(value)
+            electric_grid_data_grouped_by_year[year].append(value)
 
         for unixtime, value in natural_gas_data:
             year = datetime.fromtimestamp(unixtime / 1000).year
             natural_gas_data_grouped_by_year[year].append(value)
 
-        filtered_electric_data = [
+        filtered_electric_grid_data = [
             {"date": convert_year_to_datetime_string(year), "value": sum(values)}
-            for year, values in electric_data_grouped_by_year.items()
+            for year, values in electric_grid_data_grouped_by_year.items()
         ]
 
         filtered_natural_gas_data = [
@@ -204,9 +211,9 @@ def infer_energy_star_data(data, chart_date: date, chart_type: ChartType):
 
     return [
         {
-            "label": QuickInsightsType.electric,
+            "label": QuickInsightsType.electric_grid,
             "energy_unit": energy_unit,
-            "data": filtered_electric_data,
+            "data": filtered_electric_grid_data,
         },
         {
             "label": QuickInsightsType.natural_gas,
@@ -217,15 +224,27 @@ def infer_energy_star_data(data, chart_date: date, chart_type: ChartType):
 
 
 def merge_sites_from_solar_edge_and_energy_star(
-    solar_edge_sites_list, energy_star_sites_list
+    solar_edge_sites_list, energy_star_sites_list, uploaded_solar_edge_sites
 ):
     formatted_solar_edge_sites_list = [
-        {"id_solar_edge": site["id"], "name_solar_edge": site["name"]}
+        {
+            "id_solar_edge": site["id"],
+            "name_solar_edge": site["name"],
+            "custom_api_key": settings.API_KEY_SOLAR_EDGE,
+        }
         for site in solar_edge_sites_list
         if site["status"] == "Active"
     ]
+
+    for site in uploaded_solar_edge_sites:
+        if site["active"]:
+            formatted_solar_edge_sites_list.append(site)
+
     formatted_energy_star_sites_list = [
-        {"id_energy_star": site["id"], "name_energy_star": site["name"]}
+        {
+            "id_energy_star": site["id"],
+            "name_energy_star": site["name"],
+        }
         for site in energy_star_sites_list
     ]
 

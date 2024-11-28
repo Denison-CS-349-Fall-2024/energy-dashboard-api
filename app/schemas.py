@@ -14,16 +14,18 @@ class User(BaseModel):
 
 class Site(BaseModel):
     id: str
+    internal_name: str
     id_solar_edge: Optional[int] = None
     id_energy_star: Optional[int] = None
     name_solar_edge: Optional[str] = None
     name_energy_star: Optional[str] = None
-    internal_name: str
+    custom_api_key: Optional[str] = None
+    site_image_url: Optional[str] = None
 
 
 class QuickInsightsType(str, Enum):
     solar = "solar"
-    electric = "electric"
+    electric_grid = "electric_grid"
     natural_gas = "natural_gas"
 
 
@@ -64,3 +66,18 @@ class ChartData(BaseModel):
     chart_type: ChartType
     chart_date: Optional[date] = None
     sources: list[SourceShape]
+
+
+class EnvBenefitsData(BaseModel):
+    total_co2_emission_saved: float
+    total_trees_planted: float
+    total_solar_sites: int
+    co2_emission_saved_energy_unit: Optional[str] = "lbs"
+    trees_planted_energy_unit: Optional[str] = None
+
+
+class UploadedSolarEdgeSite(BaseModel):
+    id_solar_edge: int
+    name_solar_edge: str
+    custom_api_key: str
+    active: bool
