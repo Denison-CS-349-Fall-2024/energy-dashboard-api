@@ -2,29 +2,21 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.jobs.scheduled_jobs import merge_sites, refresh_selenium_session_cookie
-
-from .routes import site_routes
+from app.routes import job_routes, site_routes
 
 app = FastAPI()
 
-# app.include_router(auth_routes.router)
 app.include_router(site_routes.router)
+app.include_router(job_routes.router)
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["http://localhost:3000", "http://localhost:8000"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-async def startup_event():
-    # await merge_sites()
-    # await refresh_selenium_session_cookie()
-    pass
 
 
 @app.exception_handler(Exception)
