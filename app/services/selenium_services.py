@@ -1,6 +1,7 @@
 import json
 import time
 
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -17,10 +18,14 @@ class SeleniumService:
         self.site_url = (
             "https://portfoliomanager.energystar.gov/pm/property/{site_id}#summary"
         )
+        self.chrome_options = Options()
+        self.chrome_options.add_argument("--headless")
+        self.chrome_options.add_argument("--no-sandbox")
+        self.chrome_options.add_argument("--disable-dev-shm-usage")
 
     def login(self):
         # Step 1: Navigate to the website
-        driver = webdriver.Chrome()
+        driver = webdriver.Chrome(chrome_options=self.chrome_options)
         driver.get(self.base_url)
         time.sleep(5)
 
