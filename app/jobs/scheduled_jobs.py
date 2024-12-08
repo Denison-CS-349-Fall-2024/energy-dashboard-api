@@ -1,7 +1,9 @@
 import asyncio
 import collections
+from datetime import datetime, time
 
 import pandas as pd
+import pytz
 from firebase_admin import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 
@@ -14,14 +16,26 @@ from app.services.solar_services import solar_service
 
 
 async def refresh_selenium_session_cookie():
+    est_tz = pytz.timezone("US/Eastern")
+    current_time_est = datetime.now(est_tz)
+    current_time = current_time_est.time()
+    if time(3, 0) <= current_time < time(4, 0):
+        print(
+            f"Skipping task. It's between 3 AM and 4 AM EST Current time: {current_time_est.strftime('%H:%M:%S')}"
+        )
+        return
+
+    print("Start running refresh_selenium_session_cookie...")
     data = {
         "cookie": selenium_service.get_session_cookie(),
         "created_at": firestore.SERVER_TIMESTAMP,
     }
     await db.collection("cookies").document("0TuYMeLMOe0Vqqp6UyiD").set(data)
+    print("Finished running refresh_selenium_session_cookie")
 
 
 async def merge_sites():
+    print("Start running merge_sites...")
     # Source 1: enery star sites through Selenium
     energy_star_sites = selenium_service.get_energy_star_sites()
     # Source 2: solar sites through API
@@ -68,8 +82,11 @@ async def merge_sites():
         # Upsert the document into the "sites" collection
         await db.collection("sites").document(doc_id).set(doc_data)
 
+    print("Finished running merge_sites")
+
 
 async def update_site_images():
+    print("Start running update_site_images...")
     api_key_table = collections.defaultdict(
         set
     )  # mapping {api_key: [id_solar_edge, ...]}
@@ -121,3 +138,5 @@ async def update_site_images():
         doc_data = [{"id": doc.id, **doc.to_dict()} async for doc in docs][0]
         doc_data.update({"site_image_url": image_url})
         await db.collection("sites").document(doc_data["id"]).set(doc_data)
+
+    print("Finished running update_site_images")
