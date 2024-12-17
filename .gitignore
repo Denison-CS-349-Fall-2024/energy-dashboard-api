@@ -6,3 +6,4 @@ auth_routes.py
 security.py
 .vscode
 .env
+energy-dashboard-firebase.json
